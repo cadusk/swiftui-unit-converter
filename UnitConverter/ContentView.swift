@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct MyConverter {
-    let name : ConverterType
+struct Converter {
+    let type : ConverterType
     let units : [(String, Dimension)]
 }
 
@@ -30,28 +30,28 @@ struct ContentView: View {
     
     init() {
         // TODO: remove hardcoded value
-        selectedConverterName = "Temperature"
+        selectedConverter = .temperature
         selectedSourceUnit = "Celsius"
         selectedDestinationUnit = "Fahrenheit"
     }
     
     let converters = [
-        MyConverter(name: .temperature, units: [
+        Converter(type: .temperature, units: [
             ("Celsius", UnitTemperature.celsius),
             ("Fahrenheit", UnitTemperature.fahrenheit),
             ("Kelvin", UnitTemperature.kelvin)]),
-        MyConverter(name: .time, units: [
+        Converter(type: .time, units: [
             ("Seconds", UnitDuration.seconds),
             ("Minutes", UnitDuration.minutes),
             ("Hours", UnitDuration.hours),
             ("Days", UnitDuration.days)]),
-        MyConverter(name:.length, units: [
+        Converter(type:.length, units: [
             ("Meters", UnitLength.meters),
             ("Kilometers", UnitLength.kilometers),
             ("Feet", UnitLength.feet),
             ("Yards", UnitLength.yards),
             ("Miles", UnitLength.miles)]),
-        MyConverter(name: .volume, units: [
+        Converter(type: .volume, units: [
             ("Milliliters", UnitVolume.milliliters),
             ("Liters", UnitVolume.liters),
             ("Cups", UnitVolume.cups),
@@ -60,22 +60,22 @@ struct ContentView: View {
     ]
     
     @State private var amount = 0.0
-    @State private var selectedConverterName: String
+    @State private var selectedConverter: ConverterType
     @State private var selectedSourceUnit: String
     @State private var selectedDestinationUnit: String
     @FocusState private var amountIsFocused: Bool
     
-    var convertersNames: [ConverterType] {
-        converters.map { $0.name }
+    var convertersNames: [String] {
+        converters.map { $0.type.displayName }
     }
     
     var units: [String] {
-        let converter = converters.first(where: { $0.name == selectedConverterName})!
+        let converter = converters.first(where: { $0.type == selectedConverter})!
         return converter.units.map { $0.0 }
     }
     
     var result: Double {
-        let converter = converters.first(where: { $0.name == selectedConverterName})!
+        let converter = converters.first(where: { $0.type == selectedConverter})!
         
         let from = converter.units.first(where: { $0.0 == selectedSourceUnit})?.1
         let to = converter.units.first(where: { $0.0 == selectedDestinationUnit})?.1
@@ -108,32 +108,31 @@ struct ContentView: View {
         NavigationView() {
             Form() {
                 Section {
-                    Picker("Converter", selection: $selectedConverterName) {
+                    Picker("Converter", selection: $selectedConverter) {
                         ForEach(convertersNames, id: \.self) {
-                            Text($0.capitalized)
+                            Text($0)
                         }
-                    }.onChange(of: selectedConverterName) {
-                        initializeUnitsFor(converter: ConverterType(rawValue: $0) ?? .temperature)
-                        
+                    }
+                    .onChange(of: selectedConverter) {
+                        initializeUnitsFor(converter: $0)
                     }
                 } header: {
                     Text("Type of convertion")
                 }
-                
+
                 Section() {
-                    
                     Picker("From", selection: $selectedSourceUnit) {
                         ForEach(units, id: \.self) {
                             Text($0)
                         }
                     }
-                    
+
                     Picker("To", selection: $selectedDestinationUnit) {
                         ForEach(units, id: \.self) {
                             Text($0)
                         }
                     }
-                    
+
                     TextField("Amount",
                               value: $amount,
                               format: .number)
@@ -142,10 +141,10 @@ struct ContentView: View {
                 } header: {
                     Text("Units")
                 }
-                
+
                 Section() {
-                    Text("Conversion of \(selectedConverterName) from \(amount.formatted(.number)) \(selectedSourceUnit) to \(selectedDestinationUnit) is \(result.formatted(.number))")
-                    
+                    Text("Conversion of \(selectedConverter.displayName) from \(amount.formatted(.number)) \(selectedSourceUnit) to \(selectedDestinationUnit) is \(result.formatted(.number))")
+
                 } header: {
                     Text("Debug")
                 }
