@@ -7,11 +7,6 @@
 
 import SwiftUI
 
-struct Converter {
-    let type : ConverterType
-    let units : [(String, Dimension)]
-}
-
 enum ConverterType: String {
     case temperature, time, volume, length
     
@@ -20,87 +15,63 @@ enum ConverterType: String {
     }
 }
 
-extension UnitDuration {
-    class var days: UnitDuration {
-        hours
-    }
-}
-
 struct ContentView: View {
     
     init() {
-        // TODO: remove hardcoded value
         selectedConverter = .temperature
-        selectedSourceUnit = "Celsius"
-        selectedDestinationUnit = "Fahrenheit"
+        selectedSourceUnit = UnitTemperature.celsius
+        selectedDestinationUnit = UnitTemperature.fahrenheit
     }
     
-    let converters = [
-        Converter(type: .temperature, units: [
-            ("Celsius", UnitTemperature.celsius),
-            ("Fahrenheit", UnitTemperature.fahrenheit),
-            ("Kelvin", UnitTemperature.kelvin)]),
-        Converter(type: .time, units: [
-            ("Seconds", UnitDuration.seconds),
-            ("Minutes", UnitDuration.minutes),
-            ("Hours", UnitDuration.hours),
-            ("Days", UnitDuration.days)]),
-        Converter(type:.length, units: [
-            ("Meters", UnitLength.meters),
-            ("Kilometers", UnitLength.kilometers),
-            ("Feet", UnitLength.feet),
-            ("Yards", UnitLength.yards),
-            ("Miles", UnitLength.miles)]),
-        Converter(type: .volume, units: [
-            ("Milliliters", UnitVolume.milliliters),
-            ("Liters", UnitVolume.liters),
-            ("Cups", UnitVolume.cups),
-            ("Pints", UnitVolume.pints),
-            ("Gallons", UnitVolume.gallons)])
-    ]
+    let converters: [ConverterType: [Dimension]] = [
+        .length: [UnitLength.meters,
+                  UnitLength.kilometers,
+                  UnitLength.feet,
+                  UnitLength.yards,
+                  UnitLength.miles],
+        
+        .temperature: [UnitTemperature.celsius,
+                      UnitTemperature.fahrenheit,
+                      UnitTemperature.kelvin],
+        
+        .time: [UnitDuration.seconds,
+                UnitDuration.minutes,
+                UnitDuration.hours],
+        
+        .volume: [UnitVolume.milliliters,
+                  UnitVolume.liters,
+                  UnitVolume.gallons,
+                  UnitVolume.cups,
+                  UnitVolume.pints]]
     
     @State private var amount = 0.0
     @State private var selectedConverter: ConverterType
-    @State private var selectedSourceUnit: String
-    @State private var selectedDestinationUnit: String
+    @State private var selectedSourceUnit: Dimension
+    @State private var selectedDestinationUnit: Dimension
     @FocusState private var amountIsFocused: Bool
-    
-    var convertersNames: [String] {
-        converters.map { $0.type.displayName }
-    }
-    
-    var units: [String] {
-        let converter = converters.first(where: { $0.type == selectedConverter})!
-        return converter.units.map { $0.0 }
+        
+    var units: [Dimension] {
+        return converters[selectedConverter] ?? []
     }
     
     var result: Double {
-        let converter = converters.first(where: { $0.type == selectedConverter})!
-        
-        let from = converter.units.first(where: { $0.0 == selectedSourceUnit})?.1
-        let to = converter.units.first(where: { $0.0 == selectedDestinationUnit})?.1
-        
-        if from == nil || to == nil {
-            return 0.0
-        }
-        
-        return Measurement(value: amount, unit: from.unsafelyUnwrapped).converted(to: to.unsafelyUnwrapped).value
+        return Measurement(value: amount, unit: selectedSourceUnit).converted(to: selectedDestinationUnit).value
     }
     
-    func initializeUnitsFor(converter: ConverterType) {
-        switch converter {
+    func resetDefaultDimensions() {
+        switch selectedConverter {
         case .temperature:
-            selectedSourceUnit = "Fahrenheit"
-            selectedDestinationUnit = "Celsius"
+            selectedSourceUnit = UnitTemperature.celsius
+            selectedDestinationUnit = UnitTemperature.fahrenheit
         case .time:
-            selectedSourceUnit = "Seconds"
-            selectedDestinationUnit = "Hours"
+            selectedSourceUnit = UnitDuration.hours
+            selectedDestinationUnit = UnitDuration.seconds
+        case .volume:
+            selectedSourceUnit = UnitVolume.liters
+            selectedDestinationUnit = UnitVolume.gallons
         case .length:
-            selectedSourceUnit = "Meters"
-            selectedDestinationUnit = "Kilometers"
-        default:
-            selectedSourceUnit = "Liters"
-            selectedDestinationUnit = "Pints"
+            selectedSourceUnit = UnitLength.miles
+            selectedDestinationUnit = UnitLength.kilometers
         }
     }
     
@@ -109,27 +80,27 @@ struct ContentView: View {
             Form() {
                 Section {
                     Picker("Converter", selection: $selectedConverter) {
-                        ForEach(convertersNames, id: \.self) {
-                            Text($0)
+                        ForEach(Array(converters.keys), id: \.self) {
+                            Text($0.displayName)
                         }
                     }
-                    .onChange(of: selectedConverter) {
-                        initializeUnitsFor(converter: $0)
+                    .onChange(of: selectedConverter) { c in
+                        resetDefaultDimensions()
                     }
                 } header: {
-                    Text("Type of convertion")
+                    Text("Type of conversion")
                 }
 
                 Section() {
                     Picker("From", selection: $selectedSourceUnit) {
                         ForEach(units, id: \.self) {
-                            Text($0)
+                            Text($0.symbol)
                         }
                     }
 
                     Picker("To", selection: $selectedDestinationUnit) {
                         ForEach(units, id: \.self) {
-                            Text($0)
+                            Text($0.symbol)
                         }
                     }
 
@@ -143,10 +114,10 @@ struct ContentView: View {
                 }
 
                 Section() {
-                    Text("Conversion of \(selectedConverter.displayName) from \(amount.formatted(.number)) \(selectedSourceUnit) to \(selectedDestinationUnit) is \(result.formatted(.number))")
+                    Text(result.formatted(.number))
 
                 } header: {
-                    Text("Debug")
+                    Text("Results")
                 }
             }
             .navigationTitle("Super Converter")
