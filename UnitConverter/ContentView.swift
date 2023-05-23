@@ -7,57 +7,68 @@
 
 import SwiftUI
 
+extension UnitDuration {
+    // Seconds is the base unit for UnitDuration converter.
+    // This coefficient should represet the amount of seconds in a day.
+    static private let secondsInDayCoefficient = Double(60 * 60 * 24) // 86_400
+    static let days = UnitDuration(symbol: "d",
+                                   converter: UnitConverterLinear(coefficient: secondsInDayCoefficient))
+}
+
 enum ConverterType: String {
     case temperature, time, volume, length
-    
+
     var displayName: String {
         self.rawValue.capitalized
     }
 }
 
 struct ContentView: View {
-    
+
     init() {
         selectedConverter = .temperature
         selectedSourceUnit = UnitTemperature.celsius
         selectedDestinationUnit = UnitTemperature.fahrenheit
     }
-    
+
     let converters: [ConverterType: [Dimension]] = [
         .length: [UnitLength.meters,
                   UnitLength.kilometers,
                   UnitLength.feet,
                   UnitLength.yards,
                   UnitLength.miles],
-        
+
         .temperature: [UnitTemperature.celsius,
                       UnitTemperature.fahrenheit,
                       UnitTemperature.kelvin],
-        
+
         .time: [UnitDuration.seconds,
                 UnitDuration.minutes,
-                UnitDuration.hours],
-        
+                UnitDuration.hours,
+                UnitDuration.days],
+
         .volume: [UnitVolume.milliliters,
                   UnitVolume.liters,
                   UnitVolume.gallons,
                   UnitVolume.cups,
                   UnitVolume.pints]]
-    
+
     @State private var amount = 0.0
     @State private var selectedConverter: ConverterType
     @State private var selectedSourceUnit: Dimension
     @State private var selectedDestinationUnit: Dimension
     @FocusState private var amountIsFocused: Bool
-        
+
     var units: [Dimension] {
         return converters[selectedConverter] ?? []
     }
-    
+
     var result: Double {
-        return Measurement(value: amount, unit: selectedSourceUnit).converted(to: selectedDestinationUnit).value
+        return Measurement(value: amount, unit: selectedSourceUnit)
+            .converted(to: selectedDestinationUnit)
+            .value
     }
-    
+
     func resetDefaultDimensions() {
         switch selectedConverter {
         case .temperature:
@@ -74,7 +85,7 @@ struct ContentView: View {
             selectedDestinationUnit = UnitLength.kilometers
         }
     }
-    
+
     var body: some View {
         NavigationView() {
             Form() {
